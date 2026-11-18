@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Billy Browns - Calculadora y Pedidos</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="apple-touch-icon" href="logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        body { 
+            background-color: #0b0e14; 
+            color: #F3F4F6; 
+            height: 100dvh; 
+            width: 100vw;
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column;
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        
+        .tap-scale:active { transform: scale(0.96); }
+        
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=time]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+
+        .bg-panel { background-color: #151a23; }
+        .bg-btn { background-color: #1e2430; }
+        .border-panel { border-color: #2a3241; }
+    </style>
+</head>
+<body class="flex flex-col h-[100dvh] antialiased select-none">
+
+    <header class="flex-shrink-0 z-30 w-full bg-panel border-b border-panel px-4 pb-3 flex items-center justify-between shadow-md" style="padding-top: max(1rem, env(safe-area-inset-top));">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-xl shadow-[0_0_15px_rgba(249,115,22,0.3)]">
+                🍔
+            </div>
+            <div class="flex flex-col">
+                <h1 class="text-xl font-black leading-none text-white tracking-tight">BILLY BROWNS</h1>
+                <span id="header-subtitle" class="text-[10px] text-orange-400 font-bold uppercase tracking-widest mt-0.5">Calculadora de Pedidos</span>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="ui.openModal('settingsModal')" class="tap-scale w-10 h-10 bg-btn border border-panel text-gray-300 rounded-xl flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </button>
+            <button id="btn-header-clear" onclick="logic.clearOrderPrompt()" class="tap-scale w-10 h-10 bg-[#3a1c1c] border border-[#4a2424] text-red-400 rounded-xl flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex-1 relative overflow-hidden flex flex-col">
+
+        <!-- VISTA: CALCULADORA -->
+        <div id="view-calc" class="absolute inset-0 flex flex-col w-full h-full transition-opacity duration-200">
+            <main class="flex-1 flex flex-col p-1.5 gap-1.5 overflow-hidden">
+                <!-- Builder Card -->
+                <div class="flex-shrink-0 bg-panel border border-panel rounded-xl p-2.5 flex flex-col gap-2.5 shadow-lg relative overflow-hidden">
+                    <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-orange-600 via-orange-400 to-transparent"></div>
+                    
+                    <h2 id="builder-title" class="text-orange-500 font-black text-sm uppercase tracking-wide">NUEVA HAMBURGUESA — $ 0</h2>
+                    
+                    <div class="flex flex-col gap-2">
+                        <!-- Clásicas -->
+                        <div class="border border-orange-500/30 bg-orange-500/5 rounded-xl p-1.5">
+                            <div class="text-[9px] font-black text-orange-500 mb-1 uppercase tracking-widest px-1">Clásicas</div>
+                            <div class="grid grid-cols-4 gap-1.5" id="grid-clasicas"></div>
+                        </div>
+                        
+                        <!-- Veggies & Combos Row -->
+                        <div class="flex gap-1.5">
+                            <div class="flex-[3] border border-green-500/30 bg-green-500/5 rounded-xl p-1.5">
+                                <div class="text-[9px] font-black text-green-500 mb-1 uppercase tracking-widest px-1">Veggies</div>
+                                <div class="grid grid-cols-3 gap-1.5" id="grid-veggies"></div>
+                            </div>
+                            <div class="flex-[1] border border-yellow-500/30 bg-yellow-500/5 rounded-xl p-1.5">
+                                <div class="text-[9px] font-black text-yellow-500 mb-1 uppercase tracking-widest px-1">Simple</div>
+                                <div class="grid grid-cols-1 gap-1.5" id="grid-simple"></div>
+                            </div>
+                            <div class="flex-[2] border border-purple-500/30 bg-purple-500/5 rounded-xl p-1.5">
+                                <div class="text-[9px] font-black text-purple-400 mb-1 uppercase tracking-widest px-1">Combos</div>
+                                <div class="grid grid-cols-2 gap-1.5" id="grid-combos"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="h-px bg-panel border-b border-gray-700/50 my-0.5"></div>
+
+                    <!-- Extras -->
+                    <div class="grid grid-cols-3 gap-1.5">
+                        <button id="btn-cheese" onclick="logic.toggleExtra('cheese')" class="tap-scale flex flex-col items-center justify-center py-1.5 bg-btn border border-panel rounded-lg transition-colors">
+                            <span class="text-xs font-bold text-gray-300">🧀 Queso Extra</span>
+                            <span id="text-cheese-price" class="text-[10px] text-gray-500 font-mono mt-0.5">Varía</span>
+                        </button>
+                        <button id="btn-cheddar" onclick="logic.toggleExtra('cheddar')" class="tap-scale flex flex-col items-center justify-center py-1.5 bg-btn border border-panel rounded-lg transition-colors">
+                            <span class="text-xs font-bold text-gray-300">🥓 Ched/Bac</span>
+                            <span class="text-[10px] text-gray-500 font-mono mt-0.5">+$ 2.000</span>
+                        </button>
+                        <button id="btn-aderezo" onclick="logic.toggleExtra('aderezo')" class="tap-scale flex flex-col items-center justify-center py-1.5 bg-btn border border-panel rounded-lg transition-colors">
+                            <span class="text-xs font-bold text-gray-300">🥣 Aderezo</span>
+                            <span class="text-[10px] text-gray-500 font-mono mt-0.5">+$ 400</span>
+                        </button>
+                    </div>
+
+                    <button onclick="logic.addToOrder()" class="tap-scale w-full bg-gradient-to-b from-orange-500 to-orange-700 text-white font-black text-sm py-2.5 rounded-lg shadow-[0_4px_14px_rgba(234,88,12,0.39)] uppercase tracking-wide">
+                        Sumar al pedido
+                    </button>
+                </div>
+
+                <!-- Action Row -->
+                <div class="flex-shrink-0 flex gap-1.5">
+                    <button id="btn-envio" onclick="logic.toggleEnvio()" class="tap-scale flex-1 bg-panel border border-panel text-gray-300 rounded-lg py-2 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors">
+                        🛵 <span id="text-envio">Añadir Envío</span>
+                    </button>
+                    <button onclick="ui.openModal('customItemModal')" class="tap-scale flex-1 bg-panel border border-panel text-gray-300 rounded-lg py-2 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors">
+                        🥤 Añadir Bebida/Extra
+                    </button>
+                </div>
+
+                <!-- Order List (Scrollable Area) -->
+                <div id="orderList" class="flex-1 overflow-y-auto bg-panel/50 rounded-xl border border-panel p-1.5 flex flex-col gap-1.5 relative">
+                    <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center text-gray-600 opacity-50 pointer-events-none">
+                        <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        <span class="font-bold text-xs uppercase tracking-widest">Sin items</span>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Footer Calculadora -->
+            <footer class="flex-shrink-0 bg-panel border-t border-panel px-4 py-3 flex flex-col gap-2 z-40 relative">
+                <div class="flex justify-between items-center text-gray-300 font-bold text-sm">
+                    <span>Hamburguesas + Extras:</span>
+                    <span id="tot-sub" class="font-mono">$ 0</span>
+                </div>
+                <div id="row-envio" class="flex justify-between items-center text-[#7c83ff] font-bold text-sm hidden">
+                    <span>Envío:</span>
+                    <span id="tot-envio" class="font-mono">$ 0</span>
+                </div>
+                
+                <div class="border-t border-gray-700/50 w-full my-0.5"></div>
+                
+                <div class="flex justify-between items-end mb-2">
+                    <span class="text-gray-400 font-black text-lg tracking-wide">TOTAL:</span>
+                    <span id="tot-total" class="text-orange-500 font-black text-3xl leading-none font-mono">$0</span>
+                </div>
+
+                <button onclick="ui.openSaveOrderModal()" class="tap-scale w-full bg-green-600 text-white font-black text-sm py-3 rounded-xl shadow-[0_4px_14px_rgba(22,163,74,0.3)] uppercase tracking-wide">
+                    Guardar en Historial
+                </button>
+            </footer>
+        </div>
+
+        <!-- VISTA: HISTORIAL DE PEDIDOS -->
+        <div id="view-history" class="absolute inset-0 hidden flex-col w-full h-full bg-[#0b0e14] transition-opacity duration-200">
+            <div class="flex justify-between items-center bg-panel border-b border-panel px-4 py-3">
+                <div class="flex flex-col">
+                    <h2 class="text-orange-500 font-black text-sm uppercase tracking-wide">Registro del Día</h2>
+                    <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5"><span id="history-burger-count" class="text-white font-black text-xs">0</span> 🍔 Vendidas</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button id="btn-filter-envio" onclick="logic.toggleFilter('showEnvio')" class="tap-scale text-[10px] font-black uppercase tracking-wider px-2 py-1.5 rounded-lg border border-gray-700 text-gray-500 bg-btn transition-colors">
+                        🛵 Envío
+                    </button>
+                    <button id="btn-filter-retired" onclick="logic.toggleFilter('showRetired')" class="tap-scale text-[10px] font-black uppercase tracking-wider px-2 py-1.5 rounded-lg border border-gray-700 text-gray-500 bg-btn transition-colors">
+                        ✅ Retirados
+                    </button>
+                    <button onclick="logic.clearHistoryPrompt()" class="tap-scale ml-1 w-7 h-7 flex items-center justify-center rounded-lg text-gray-500 hover:text-red-400 hover:bg-[#3a1c1c] transition-colors" title="Borrar todo">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="historyList" class="flex-1 overflow-y-auto p-2 pb-6">
+                <!-- Los pedidos se inyectarán aquí -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- TAB BAR INFERIOR -->
+    <nav class="flex-shrink-0 bg-panel border-t border-[#2a3241] flex relative z-40" style="padding-bottom: max(0.5rem, env(safe-area-inset-bottom));">
+        <button id="tab-calc" onclick="logic.switchView('calc')" class="flex-1 py-3 flex flex-col items-center gap-1 text-orange-500 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+            <span class="text-[10px] font-black uppercase tracking-widest">Calculadora</span>
+        </button>
+        <button id="tab-history" onclick="logic.switchView('history')" class="flex-1 py-3 flex flex-col items-center gap-1 text-gray-500 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+            <span class="text-[10px] font-black uppercase tracking-widest">Pedidos</span>
+        </button>
+    </nav>
+
+    <!-- Modal Custom Item -->
+    <div id="customItemModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-panel border border-gray-700 p-5 rounded-2xl w-full max-w-xs shadow-2xl">
+            <h3 class="text-white font-black text-sm uppercase tracking-wide mb-3 text-center">Bebida / Extra</h3>
+            <input type="text" id="ci-name" placeholder="Ej: Coca Cola 1.5L" class="w-full bg-[#0b0e14] border border-gray-700 text-white rounded-lg p-3 text-sm mb-3 focus:outline-none focus:border-orange-500 font-bold placeholder-gray-600">
+            <input type="number" id="ci-price" placeholder="Precio ($)" class="w-full bg-[#0b0e14] border border-gray-700 text-white rounded-lg p-3 text-sm mb-4 focus:outline-none focus:border-orange-500 font-mono font-bold placeholder-gray-600">
+            <div class="flex gap-2">
+                <button onclick="ui.closeModal('customItemModal')" class="flex-1 py-2.5 bg-btn rounded-lg text-gray-400 font-bold text-sm transition-colors active:bg-gray-800">Cancelar</button>
+                <button onclick="logic.addCustomItem()" class="flex-1 py-2.5 bg-orange-600 rounded-lg text-white font-bold text-sm shadow-lg shadow-orange-900/50 transition-colors active:bg-orange-700">Añadir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Settings -->
+    <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2">
+        <div class="bg-panel border border-gray-700 rounded-2xl w-full max-w-sm max-h-[90dvh] flex flex-col shadow-2xl">
+            <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-[#1a202c] rounded-t-2xl">
+                <h3 class="text-white font-black text-sm tracking-wide">⚙️ CONFIGURACIÓN DE PRECIOS</h3>
+                <button onclick="ui.closeModal('settingsModal')" class="text-gray-400 hover:text-white font-bold w-6 h-6 bg-gray-800 rounded-full flex items-center justify-center text-xs">✕</button>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1 space-y-5 text-xs bg-panel" id="settings-container">
+                <!-- Inputs inyectados via JS -->
+            </div>
+            <div class="p-4 border-t border-gray-700 bg-[#1a202c] rounded-b-2xl flex gap-2">
+                <button onclick="logic.resetPricesPrompt()" class="flex-1 py-3 bg-[#3a1c1c] text-red-400 rounded-xl font-bold uppercase text-xs">Restaurar</button>
+                <button onclick="logic.savePrices()" class="flex-[2] py-3 bg-orange-600 text-white rounded-xl font-bold uppercase text-xs shadow-lg shadow-orange-900/50">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Save Order (Guardar Pedido - Horarios Fijos) -->
+    <div id="saveOrderModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-panel border border-gray-700 p-5 rounded-2xl w-full max-w-xs shadow-2xl">
+            <h3 class="text-white font-black text-sm uppercase tracking-wide mb-4 text-center">Guardar Pedido</h3>
+            
+            <label class="block text-gray-400 text-xs font-bold mb-1 ml-1">Nombre del Cliente</label>
+            <input type="text" id="so-name" placeholder="Ej: Juan Pérez" class="w-full bg-[#0b0e14] border border-gray-700 text-white rounded-lg p-3 text-sm mb-3 focus:outline-none focus:border-orange-500 font-bold placeholder-gray-600">
+            
+            <label class="block text-gray-400 text-xs font-bold mb-1 ml-1">Horario de Entrega / Retiro</label>
+            <select id="so-time" class="w-full bg-[#0b0e14] border border-gray-700 text-white rounded-lg p-3 text-sm mb-1 focus:outline-none focus:border-orange-500 font-mono font-bold">
+                <!-- Franjas predefinidas -->
+                <option value="20:30">20:30</option>
+                <option value="20:45">20:45</option>
+                <option value="21:00">21:00</option>
+                <option value="21:15">21:15</option>
+                <option value="21:30">21:30</option>
+                <option value="21:45">21:45</option>
+                <option value="22:00">22:00</option>
+                <option value="22:15">22:15</option>
+                <option value="22:30">22:30</option>
+                <option value="22:45">22:45</option>
+                <option value="23:00">23:00</option>
+                <option value="23:15">23:15</option>
+                <option value="23:30">23:30</option>
+                <option value="23:40">23:40</option>
+            </select>
+            <span id="so-error" class="block hidden text-red-500 text-xs font-bold mb-3 ml-1"></span>
+            
+            <div class="flex gap-2 mt-4">
+                <button onclick="ui.closeModal('saveOrderModal')" class="flex-1 py-2.5 bg-btn rounded-lg text-gray-400 font-bold text-sm transition-colors active:bg-gray-800">Cancelar</button>
+                <button onclick="logic.confirmSaveOrder()" class="flex-1 py-2.5 bg-green-600 rounded-lg text-white font-bold text-sm shadow-lg shadow-green-900/50 transition-colors active:bg-green-700">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generic Confirm Modal -->
+    <div id="confirmModal" class="hidden fixed inset-0 z-[60] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-panel border border-gray-700 p-5 rounded-2xl w-full max-w-xs shadow-2xl text-center flex flex-col items-center">
+            <div id="confirm-icon" class="w-12 h-12 rounded-full bg-red-600/20 text-red-500 flex items-center justify-center mb-3">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <h3 id="confirm-title" class="text-white font-black text-base tracking-wide mb-1">Confirmar</h3>
+            <p id="confirm-msg" class="text-gray-400 text-sm mb-5 leading-tight">¿Estás seguro?</p>
+            <div class="flex gap-2 w-full">
+                <button onclick="ui.closeConfirm()" class="flex-1 py-2.5 bg-btn rounded-lg text-gray-400 font-bold text-sm transition-colors active:bg-gray-800">Cancelar</button>
+                <button id="confirm-yes-btn" onclick="ui.confirmYes()" class="flex-1 py-2.5 bg-red-600 rounded-lg text-white font-bold text-sm shadow-lg transition-colors">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const formatMoney = (num) => '$ ' + Number(num).toLocaleString('es-AR');
+
+        // Configuración (Envío fijado en 4000)
+        const defaultPrices = {
+            base: { S: 12900, M: 14600, L: 16300, XL: 18000, SV: 11500, MV: 12500, LV: 13500, SC: 10000, S2: 12000, M2: 15000 },
+            extra: { S: 13200, M: 15100, L: 17100, XL: 19000, SV: 11800, MV: 13000, LV: 14300 },
+            addons: { cheddar: 2000, aderezo: 400, envio: 4000 }
+        };
+
+        const config = {
+            clasicas: ['S', 'M', 'L', 'XL'],
+            veggies: ['SV', 'MV', 'LV'],
+            simple: ['SC'],
+            combos: ['S2', 'M2']
+        };
+
+        // Estado Global
+        let state = {
+            currentView: 'calc', 
+            prices: JSON.parse(JSON.stringify(defaultPrices)),
+            order: [],
+            history: [], 
+            envioActive: false,
+            builder: {
+                size: null,
+                cheese: false,
+                cheddar: false,
+                aderezo: false
+            },
+            filters: {
+                showEnvio: false, // Ocultar envíos por defecto
+                showRetired: false // Ocultar retirados por defecto
+            }
+        };
+
+        let confirmCallback = null;
+
+        const logic = {
+            canCheese: (size) => size && size !== 'SC' && size !== 'S2' && size !== 'M2',
+            canPapas: (size) => size && size !== 'S2' && size !== 'M2',
+
+            setSize: (size) => {
+                state.builder.size = size;
+                if (!logic.canCheese(size)) state.builder.cheese = false;
+                if (!logic.canPapas(size)) {
+                    state.builder.cheddar = false;
+                    state.builder.aderezo = false;
+                }
+                ui.updateAll();
+            },
+
+            toggleExtra: (type) => {
+                const { size } = state.builder;
+                if (!size) return;
+                
+                if (type === 'cheese' && logic.canCheese(size)) {
+                    state.builder.cheese = !state.builder.cheese;
+                } else if ((type === 'cheddar' || type === 'aderezo') && logic.canPapas(size)) {
+                    state.builder[type] = !state.builder[type];
+                }
+                ui.updateAll();
+            },
+
+            getCurrentBuilderItem: () => {
+                const { size, cheese, cheddar, aderezo } = state.builder;
+                if (!size) return { name: 'Ninguna', price: 0 };
+
+                let isExtra = cheese && logic.canCheese(size);
+                let price = isExtra ? state.prices.extra[size] : state.prices.base[size];
+                let name = isExtra ? size + 'X' : size;
+
+                if (cheddar && logic.canPapas(size)) { price += state.prices.addons.cheddar; name += ' + Ched/Bac'; }
+                if (aderezo && logic.canPapas(size)) { price += state.prices.addons.aderezo; name += ' + Ader'; }
+
+                return { name, price };
+            },
+
+            addToOrder: () => {
+                const { size } = state.builder;
+                if (!size) return;
+                const item = logic.getCurrentBuilderItem();
+                state.order.push({ id: Date.now(), name: item.name, price: item.price, qty: 1, isBurger: true });
+                state.builder = { size: null, cheese: false, cheddar: false, aderezo: false };
+                ui.updateAll();
+            },
+
+            addCustomItem: () => {
+                const name = document.getElementById('ci-name').value.trim() || 'Extra';
+                const price = parseInt(document.getElementById('ci-price').value) || 0;
+                if (price > 0) {
+                    state.order.push({ id: Date.now(), name, price, qty: 1, isBurger: false });
+                    document.getElementById('ci-name').value = '';
+                    document.getElementById('ci-price').value = '';
+                    ui.closeModal('customItemModal');
+                    ui.updateAll();
+                }
+            },
+
+            toggleEnvio: () => {
+                state.envioActive = !state.envioActive;
+                ui.updateAll();
+            },
+
+            removeItem: (id) => {
+                state.order = state.order.filter(i => i.id !== id);
+                ui.updateAll();
+            },
+
+            clearOrderPrompt: () => {
+                if(state.order.length === 0 && !state.envioActive) return;
+                ui.showConfirm(
+                    'Limpiar Calculadora', 
+                    '¿Deseas vaciar el pedido actual en curso?', 
+                    () => {
+                        state.order = [];
+                        state.envioActive = false;
+                        state.builder = { size: null, cheese: false, cheddar: false, aderezo: false };
+                        ui.updateAll();
+                    },
+                    'Vaciar',
+                    'bg-red-600'
+                );
+            },
+
+            confirmSaveOrder: () => {
+                const name = document.getElementById('so-name').value.trim();
+                const time = document.getElementById('so-time').value;
+                const errorSpan = document.getElementById('so-error');
+
+                if(!name || !time) {
+                    errorSpan.innerText = '* Por favor ingresa el nombre y el horario.';
+                    errorSpan.classList.remove('hidden');
+                    return;
+                }
+
+                let sub = 0;
+                state.order.forEach(i => sub += i.price);
+                const total = sub + (state.envioActive ? state.prices.addons.envio : 0);
+
+                const newOrder = {
+                    id: Date.now(),
+                    name,
+                    time,
+                    items: [...state.order],
+                    hasEnvio: state.envioActive,
+                    total,
+                    paid: false,
+                    retired: false
+                };
+
+                state.history.push(newOrder);
+                logic.saveHistoryData();
+
+                state.order = [];
+                state.envioActive = false;
+                state.builder = { size: null, cheese: false, cheddar: false, aderezo: false };
+                
+                ui.closeModal('saveOrderModal');
+                ui.updateAll();
+                
+                // Si el nuevo pedido es con envío pero tenemos el filtro activo, forzamos la vista para que el usuario lo vea
+                if (newOrder.hasEnvio) state.filters.showEnvio = true;
+                
+                logic.switchView('history');
+            },
+
+            toggleOrderStatus: (id, field) => {
+                const order = state.history.find(o => o.id === id);
+                if(order) {
+                    order[field] = !order[field];
+                    logic.saveHistoryData();
+                    ui.updateHistoryView();
+                }
+            },
+
+            deleteOrderPrompt: (id) => {
+                ui.showConfirm(
+                    'Eliminar Registro', 
+                    '¿Borrar este pedido del historial permanentemente?', 
+                    () => {
+                        state.history = state.history.filter(o => o.id !== id);
+                        logic.saveHistoryData();
+                        ui.updateHistoryView();
+                    },
+                    'Eliminar',
+                    'bg-[#3a1c1c] text-red-400'
+                );
+            },
+
+            clearHistoryPrompt: () => {
+                if(state.history.length === 0) return;
+                ui.showConfirm(
+                    'Borrar todo el registro', 
+                    '¿Estás seguro de que deseas eliminar TODOS los pedidos del día? Esta acción no se puede deshacer.', 
+                    () => {
+                        state.history = [];
+                        logic.saveHistoryData();
+                        ui.updateHistoryView();
+                    }
+                );
+            },
+
+            toggleFilter: (type) => {
+                state.filters[type] = !state.filters[type];
+                ui.updateHistoryView();
+            },
+
+            switchView: (view) => {
+                state.currentView = view;
+                const viewCalc = document.getElementById('view-calc');
+                const viewHist = document.getElementById('view-history');
+                const tabCalc = document.getElementById('tab-calc');
+                const tabHist = document.getElementById('tab-history');
+                const headerTitle = document.getElementById('header-subtitle');
+                const btnHeaderClear = document.getElementById('btn-header-clear');
+
+                if (view === 'calc') {
+                    viewCalc.classList.remove('hidden'); viewCalc.classList.add('flex');
+                    viewHist.classList.add('hidden'); viewHist.classList.remove('flex');
+                    tabCalc.classList.replace('text-gray-500', 'text-orange-500');
+                    tabHist.classList.replace('text-orange-500', 'text-gray-500');
+                    headerTitle.innerText = "Calculadora de Pedidos";
+                    btnHeaderClear.classList.remove('hidden');
+                } else {
+                    viewHist.classList.remove('hidden'); viewHist.classList.add('flex');
+                    viewCalc.classList.add('hidden'); viewCalc.classList.remove('flex');
+                    tabHist.classList.replace('text-gray-500', 'text-orange-500');
+                    tabCalc.classList.replace('text-orange-500', 'text-gray-500');
+                    headerTitle.innerText = "Historial y Seguimiento";
+                    btnHeaderClear.classList.add('hidden');
+                    ui.updateHistoryView();
+                }
+            },
+
+            loadData: () => {
+                const savedPrices = localStorage.getItem('billyPricesV3');
+                if (savedPrices) {
+                    try { state.prices = { ...defaultPrices, ...JSON.parse(savedPrices) }; } catch(e){}
+                } else {
+                    localStorage.removeItem('billyPricesV2'); 
+                    state.prices = JSON.parse(JSON.stringify(defaultPrices));
+                }
+
+                const savedHistory = localStorage.getItem('billyHistoryV1');
+                if (savedHistory) {
+                    try { state.history = JSON.parse(savedHistory); } catch(e){}
+                }
+            },
+
+            savePrices: () => {
+                const getV = (cat, k) => parseInt(document.getElementById(`inp_${cat}_${k}`).value) || defaultPrices[cat][k];
+                Object.keys(state.prices.base).forEach(k => state.prices.base[k] = getV('base', k));
+                Object.keys(state.prices.extra).forEach(k => state.prices.extra[k] = getV('extra', k));
+                Object.keys(state.prices.addons).forEach(k => state.prices.addons[k] = getV('addons', k));
+                localStorage.setItem('billyPricesV3', JSON.stringify(state.prices));
+                ui.closeModal('settingsModal');
+                ui.updateAll();
+            },
+
+            resetPricesPrompt: () => {
+                ui.showConfirm(
+                    'Restaurar Precios', 
+                    '¿Volver a los precios de fábrica por defecto? (Envío $4000)', 
+                    () => {
+                        localStorage.removeItem('billyPricesV3');
+                        state.prices = JSON.parse(JSON.stringify(defaultPrices));
+                        ui.buildSettings();
+                        ui.updateAll();
+                    },
+                    'Restaurar'
+                );
+            },
+
+            saveHistoryData: () => localStorage.setItem('billyHistoryV1', JSON.stringify(state.history))
+        };
+
+        const ui = {
+            init: () => {
+                logic.loadData();
+                ui.renderGrids();
+                ui.buildSettings();
+                ui.updateAll();
+                logic.switchView('calc');
+            },
+
+            openModal: (id) => document.getElementById(id).classList.remove('hidden'),
+            closeModal: (id) => document.getElementById(id).classList.add('hidden'),
+
+            showConfirm: (title, msg, callback, acceptText = 'Aceptar', btnColor = 'bg-red-600') => {
+                document.getElementById('confirm-title').innerText = title;
+                document.getElementById('confirm-msg').innerText = msg;
+                const btn = document.getElementById('confirm-yes-btn');
+                btn.innerText = acceptText;
+                btn.className = `flex-1 py-2.5 ${btnColor} rounded-lg text-white font-bold text-sm shadow-lg transition-colors active:scale-95`;
+                confirmCallback = callback;
+                ui.openModal('confirmModal');
+            },
+            closeConfirm: () => {
+                confirmCallback = null;
+                ui.closeModal('confirmModal');
+            },
+            confirmYes: () => {
+                if(confirmCallback) confirmCallback();
+                ui.closeConfirm();
+            },
+
+            openSaveOrderModal: () => {
+                if(state.order.length === 0 && !state.envioActive) return;
+                
+                // Lógica de próxima franja horaria
+                const now = new Date();
+                const currentTotalMins = (now.getHours() * 60) + now.getMinutes();
+                const timeSlots = ['20:30', '20:45', '21:00', '21:15', '21:30', '21:45', '22:00', '22:15', '22:30', '22:45', '23:00', '23:15', '23:30', '23:40'];
+                
+                let nextSlot = timeSlots[0];
+                for (let slot of timeSlots) {
+                    const [h, m] = slot.split(':').map(Number);
+                    const slotTotalMins = (h * 60) + m;
+                    if (slotTotalMins >= currentTotalMins) {
+                        nextSlot = slot;
+                        break;
+                    }
+                }
+                
+                document.getElementById('so-time').value = nextSlot;
+                document.getElementById('so-name').value = '';
+                document.getElementById('so-error').classList.add('hidden');
+                ui.openModal('saveOrderModal');
+            },
+
+            renderGrids: () => {
+                const buildBtns = (arr, id) => {
+                    document.getElementById(id).innerHTML = arr.map(s => 
+                        `<button id="btn-sz-${s}" onclick="logic.setSize('${s}')" class="btn-sz tap-scale bg-btn border border-panel rounded-lg py-2.5 text-xs font-black text-gray-400 transition-colors">${s}</button>`
+                    ).join('');
+                };
+                buildBtns(config.clasicas, 'grid-clasicas');
+                buildBtns(config.veggies, 'grid-veggies');
+                buildBtns(config.simple, 'grid-simple');
+                buildBtns(config.combos, 'grid-combos');
+            },
+
+            buildSettings: () => {
+                const cont = document.getElementById('settings-container');
+                let html = '';
+                const sec = (title, keys, cat) => {
+                    html += `<div class="mb-4"><h4 class="text-orange-500 font-black mb-2 uppercase">${title}</h4><div class="grid grid-cols-3 gap-2">`;
+                    keys.forEach(k => {
+                        html += `<div><label class="block text-gray-400 font-bold mb-1">${k}</label><input type="number" id="inp_${cat}_${k}" class="w-full bg-[#0b0e14] border border-gray-700 rounded p-2 text-white font-mono" value="${state.prices[cat][k]}"></div>`;
+                    });
+                    html += `</div></div>`;
+                };
+                sec('Clásicas & Combos', Object.keys(state.prices.base), 'base');
+                sec('Extra Queso (X)', Object.keys(state.prices.extra), 'extra');
+                sec('Adicionales', Object.keys(state.prices.addons), 'addons');
+                cont.innerHTML = html;
+            },
+
+            updateAll: () => {
+                ui.updateBuilder();
+                ui.updateOrderList();
+                ui.updateTotals();
+            },
+
+            updateBuilder: () => {
+                const { size, cheese, cheddar, aderezo } = state.builder;
+                const current = logic.getCurrentBuilderItem();
+                
+                document.getElementById('builder-title').innerText = `NUEVA HAMBURGUESA — ${formatMoney(current.price)}`;
+
+                document.querySelectorAll('.btn-sz').forEach(btn => {
+                    const bSize = btn.id.replace('btn-sz-', '');
+                    btn.className = "btn-sz tap-scale bg-btn border border-panel rounded-lg py-2 text-[13px] font-black text-gray-500 transition-all";
+                    btn.innerText = bSize; 
+
+                    if (bSize === size) {
+                        if (config.clasicas.includes(size)) btn.className = "btn-sz tap-scale bg-orange-600/20 border border-orange-500 rounded-lg py-2 text-[13px] font-black text-orange-400 transition-all shadow-[0_0_10px_rgba(249,115,22,0.15)]";
+                        if (config.veggies.includes(size)) btn.className = "btn-sz tap-scale bg-green-500/20 border border-green-500 rounded-lg py-2 text-[13px] font-black text-green-400 transition-all shadow-[0_0_10px_rgba(34,197,94,0.15)]";
+                        if (config.simple.includes(size)) btn.className = "btn-sz tap-scale bg-yellow-500/20 border border-yellow-500 rounded-lg py-2 text-[13px] font-black text-yellow-400 transition-all shadow-[0_0_10px_rgba(234,179,8,0.15)]";
+                        if (config.combos.includes(size)) btn.className = "btn-sz tap-scale bg-purple-500/20 border border-purple-500 rounded-lg py-2 text-[13px] font-black text-purple-400 transition-all shadow-[0_0_10px_rgba(168,85,247,0.15)]";
+                        
+                        if (cheese && logic.canCheese(size)) btn.innerText = size + 'X';
+                    }
+                });
+
+                const styleExt = (id, active, allowed) => {
+                    const el = document.getElementById(id);
+                    if (!allowed) {
+                        el.className = "tap-scale flex flex-col items-center justify-center py-1.5 bg-[#0b0e14] border border-panel rounded-lg opacity-40 cursor-not-allowed";
+                        el.querySelector('span').classList.replace('text-white', 'text-gray-600');
+                        el.querySelector('span').classList.replace('text-gray-300', 'text-gray-600');
+                    } else if (active) {
+                        el.className = "tap-scale flex flex-col items-center justify-center py-1.5 bg-blue-600/20 border border-blue-500 rounded-lg transition-colors";
+                        el.querySelector('span').classList.replace('text-gray-600', 'text-blue-400');
+                        el.querySelector('span').classList.replace('text-gray-300', 'text-blue-400');
+                    } else {
+                        el.className = "tap-scale flex flex-col items-center justify-center py-1.5 bg-btn border border-panel rounded-lg transition-colors";
+                        el.querySelector('span').classList.replace('text-blue-400', 'text-gray-300');
+                        el.querySelector('span').classList.replace('text-gray-600', 'text-gray-300');
+                    }
+                };
+
+                styleExt('btn-cheese', cheese, logic.canCheese(size));
+                styleExt('btn-cheddar', cheddar, logic.canPapas(size));
+                styleExt('btn-aderezo', aderezo, logic.canPapas(size));
+
+                const txtCheese = document.getElementById('text-cheese-price');
+                if (size && logic.canCheese(size)) {
+                    const diff = state.prices.extra[size] - state.prices.base[size];
+                    txtCheese.innerText = '+$ ' + diff.toLocaleString('es-AR');
+                } else {
+                    txtCheese.innerText = 'Varía';
+                }
+            },
+
+            updateOrderList: () => {
+                const list = document.getElementById('orderList');
+                const empty = document.getElementById('emptyState');
+                Array.from(list.children).forEach(c => { if(c.id !== 'emptyState') c.remove(); });
+
+                if (state.order.length === 0) {
+                    empty.classList.remove('hidden');
+                } else {
+                    empty.classList.add('hidden');
+                    state.order.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = "bg-btn border border-panel p-2 rounded-lg flex justify-between items-center";
+                        div.innerHTML = `
+                            <div class="flex flex-col overflow-hidden mr-2">
+                                <span class="font-bold text-gray-200 text-xs truncate leading-tight">${item.name}</span>
+                                <span class="text-orange-400 font-mono font-bold text-xs mt-0.5">${formatMoney(item.price)}</span>
+                            </div>
+                            <button onclick="logic.removeItem(${item.id})" class="tap-scale shrink-0 w-8 h-8 rounded-lg bg-panel border border-gray-700 text-gray-400 flex items-center justify-center">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        `;
+                        list.appendChild(div);
+                    });
+                    list.scrollTop = list.scrollHeight;
+                }
+
+                const bEnv = document.getElementById('btn-envio');
+                if (state.envioActive) {
+                    bEnv.className = "tap-scale flex-1 bg-[#474bff]/20 border border-[#474bff] text-[#8e92ff] rounded-lg py-2 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors";
+                    document.getElementById('text-envio').innerText = "Envío Añadido";
+                } else {
+                    bEnv.className = "tap-scale flex-1 bg-panel border border-panel text-gray-300 rounded-lg py-2 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors";
+                    document.getElementById('text-envio').innerText = "Añadir Envío";
+                }
+            },
+
+            updateTotals: () => {
+                let sub = 0;
+                state.order.forEach(i => sub += i.price);
+                document.getElementById('tot-sub').innerText = formatMoney(sub);
+                
+                const rowEnvio = document.getElementById('row-envio');
+                if (state.envioActive) {
+                    rowEnvio.classList.remove('hidden');
+                    document.getElementById('tot-envio').innerText = formatMoney(state.prices.addons.envio);
+                } else {
+                    rowEnvio.classList.add('hidden');
+                }
+
+                const total = sub + (state.envioActive ? state.prices.addons.envio : 0);
+                document.getElementById('tot-total').innerText = formatMoney(total);
+            },
+
+            updateHistoryView: () => {
+                // Actualizar estilos de los botones de filtro
+                const btnEnvio = document.getElementById('btn-filter-envio');
+                const btnRetired = document.getElementById('btn-filter-retired');
+                
+                if (state.filters.showEnvio) {
+                    btnEnvio.className = "tap-scale text-[10px] font-black uppercase tracking-wider px-2 py-1.5 rounded-lg bg-[#474bff]/20 text-[#8e92ff] border border-[#474bff]/50 transition-colors";
+                } else {
+                    btnEnvio.className = "tap-scale text-[10px] font-black uppercase tracking-wider px-2 py-1.5 rounded-lg border border-gray-700 text-gray-500 bg-btn transition-colors";
+                }
+
+                if (state.filters.showRetired) {
+                    btnRetired.className = "tap-scale text-[10px] font-black uppercase tracking-wider px-2 py-1.5 rounded-lg bg-orange-600/20 text-orange-400 border border-orange-500/50 transition-colors";
+                } else {
+                    btnRetired.className = "tap-scale text-[10px] font-black uppercase tracking-wider px-2 py-1.5 rounded-lg border border-gray-700 text-gray-500 bg-btn transition-colors";
+                }
+
+                // Cálculo total de hamburguesas vendidas en el día (independiente de los filtros visuales)
+                let totalBurgers = 0;
+                state.history.forEach(order => {
+                    order.items.forEach(item => {
+                        let isB = item.isBurger;
+                        
+                        // Extraemos la primera palabra del nombre (ej: "S2", "S", "M") para identificar el tamaño
+                        const baseName = item.name.split(' ')[0].replace('X', '');
+                        
+                        // Compatibilidad con pedidos guardados antes de esta actualización
+                        if (isB === undefined) {
+                            const allSizes = [...config.clasicas, ...config.veggies, ...config.simple, ...config.combos];
+                            isB = allSizes.includes(baseName);
+                        }
+                        
+                        if (isB) {
+                            // Si pertenece a la categoría de combos, vale x2, sino x1
+                            const multiplier = config.combos.includes(baseName) ? 2 : 1;
+                            totalBurgers += (item.qty || 1) * multiplier;
+                        }
+                    });
+                });
+                document.getElementById('history-burger-count').innerText = totalBurgers;
+
+                const list = document.getElementById('historyList');
+                list.innerHTML = '';
+                
+                // Aplicamos los filtros para mostrar/ocultar según el estado de las variables
+                const filteredHistory = state.history.filter(order => {
+                    if (order.retired && !state.filters.showRetired) return false;
+                    if (order.hasEnvio && !state.filters.showEnvio) return false;
+                    return true;
+                });
+
+                if(filteredHistory.length === 0) {
+                    list.innerHTML = `
+                        <div class="flex flex-col items-center justify-center h-full text-gray-600 opacity-50 mt-10">
+                            <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                            <span class="font-bold text-sm uppercase tracking-widest text-center px-4">Sin pedidos<br><span class="text-[10px] font-normal tracking-normal">(Prueba revisar los filtros de Envío o Retirados arriba)</span></span>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const sorted = [...filteredHistory].sort((a,b) => a.time.localeCompare(b.time));
+
+                sorted.forEach(order => {
+                    const envioClasses = order.hasEnvio 
+                        ? "bg-blue-600/20 text-blue-400 border-blue-500/50" 
+                        : "bg-panel border-gray-800 text-gray-600 opacity-40 cursor-default";
+                    
+                    const pagoClasses = order.paid 
+                        ? "bg-green-600/20 text-green-400 border-green-500/50 shadow-[0_0_10px_rgba(22,163,74,0.15)]" 
+                        : "bg-btn border-gray-700 text-gray-400";
+
+                    const retiradoClasses = order.retired 
+                        ? "bg-orange-600/20 text-orange-400 border-orange-500/50 shadow-[0_0_10px_rgba(249,115,22,0.15)]" 
+                        : "bg-btn border-gray-700 text-gray-400";
+
+                    // Colores de la tarjeta principal (Verde pastel oscuro si está pagado)
+                    let cardClasses = order.retired
+                        ? "bg-panel border border-gray-800 rounded-xl p-3 mb-3 opacity-60 transition-all duration-300 shadow-sm"
+                        : "bg-panel border border-gray-600 rounded-xl p-3 mb-3 transition-all duration-300 shadow-md";
+
+                    if (order.paid) {
+                        cardClasses = order.retired
+                            ? "bg-[#112417] border border-[#1b3d26] rounded-xl p-3 mb-3 opacity-60 transition-all duration-300 shadow-sm"
+                            : "bg-[#163321] border border-[#275c3b] rounded-xl p-3 mb-3 transition-all duration-300 shadow-md shadow-green-900/20";
+                    }
+
+                    // Cálculo detallado de items y envío
+                    const subtotal = order.items.reduce((acc, curr) => acc + (curr.price * curr.qty), 0);
+                    const envioPrice = order.total - subtotal; // Forma más segura de saber el precio histórico que tuvo el envío
+
+                    let itemsText = order.items.map(i => `
+                        <div class="flex justify-between items-center py-0.5">
+                            <span class="truncate pr-2"><span class="font-bold text-gray-300">${i.qty}x</span> <span class="text-gray-300">${i.name}</span></span>
+                            <span class="text-gray-400 font-mono shrink-0">${formatMoney(i.price * i.qty)}</span>
+                        </div>
+                    `).join('');
+
+                    if (order.hasEnvio) {
+                        itemsText += `
+                        <div class="flex justify-between items-center py-1 mt-1 border-t border-gray-700/50">
+                            <span class="truncate pr-2 font-bold text-[#7c83ff]">🛵 Envío</span>
+                            <span class="text-[#7c83ff] font-mono shrink-0 font-bold">${formatMoney(envioPrice)}</span>
+                        </div>
+                        `;
+                    }
+
+                    const div = document.createElement('div');
+                    div.className = cardClasses;
+                    div.innerHTML = `
+                        <div class="flex justify-between items-center mb-3">
+                            <div class="font-black text-white text-2xl truncate pr-2 capitalize tracking-tight">${order.name}</div>
+                            <div class="font-mono text-gray-300 bg-gray-800 border border-gray-700 px-2 py-1 rounded-lg text-sm shrink-0 flex items-center gap-1.5 shadow-inner">
+                                <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                ${order.time}
+                            </div>
+                        </div>
+                        
+                        <div class="text-xs text-gray-400 mb-4 leading-relaxed bg-[#0b0e14]/60 p-2 rounded-lg border border-gray-800/80">
+                            ${itemsText || '<i class="text-gray-600">Sin items</i>'}
+                        </div>
+                        
+                        <div class="flex justify-between items-end mb-3 border-b border-gray-800 pb-3">
+                            <span class="text-gray-400 font-bold text-xs uppercase tracking-wider">Total Final:</span>
+                            <span class="text-orange-500 font-black text-xl font-mono leading-none">${formatMoney(order.total)}</span>
+                        </div>
+                        
+                        <div class="flex gap-1.5">
+                            <div class="flex-1 text-[10px] py-2 rounded-lg font-black uppercase tracking-wider flex items-center justify-center gap-1 border ${envioClasses}">
+                                🛵 Envío
+                            </div>
+                            <button onclick="logic.toggleOrderStatus(${order.id}, 'paid')" class="tap-scale flex-1 text-[10px] py-2 rounded-lg font-black uppercase tracking-wider flex items-center justify-center gap-1 border transition-colors ${pagoClasses}">
+                                💲 Pago
+                            </button>
+                            <button onclick="logic.toggleOrderStatus(${order.id}, 'retired')" class="tap-scale flex-[1.2] text-[10px] py-2 rounded-lg font-black uppercase tracking-wider flex items-center justify-center gap-1 border transition-colors ${retiradoClasses}">
+                                ✅ Retirado
+                            </button>
+                            <button onclick="logic.deleteOrderPrompt(${order.id})" class="tap-scale shrink-0 w-9 flex items-center justify-center rounded-lg bg-[#3a1c1c] text-red-400 border border-[#4a2424]">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    `;
+                    list.appendChild(div);
+                });
+            }
+        };
+
+        window.onload = ui.init;
+    </script>
+</body>
+</html>
